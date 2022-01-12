@@ -1,8 +1,8 @@
 CMakeFiles/HeyVulkan.dir/src/main.cpp.o: \
- /home/jae/WorkSpace/Personal/VK2/project_cmake/src/main.cpp \
+ /home/jae/WorkSpace/Personal/VK/VK_WORK/src/main.cpp \
  /usr/include/stdc-predef.h \
- /home/jae/WorkSpace/Personal/VK2/project_cmake/src/MyApp.hpp \
- /home/jae/WorkSpace/Personal/VK2/project_cmake/src/Application.hpp \
+ /home/jae/WorkSpace/Personal/VK/VK_WORK/src/MyApp.hpp \
+ /home/jae/WorkSpace/Personal/VK/VK_WORK/src/Application.hpp \
  /usr/include/c++/11.1.0/cstdint \
  /usr/include/c++/11.1.0/x86_64-pc-linux-gnu/bits/c++config.h \
  /usr/include/c++/11.1.0/x86_64-pc-linux-gnu/bits/os_defines.h \

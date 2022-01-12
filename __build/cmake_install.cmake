@@ -1,4 +1,4 @@
-# Install script for directory: /home/jae/WorkSpace/Personal/VK2/project_cmake
+# Install script for directory: /home/jae/WorkSpace/Personal/VK/VK_WORK
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/jae/WorkSpace/Personal/VK2/project_cmake/__build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/jae/WorkSpace/Personal/VK/VK_WORK/__build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
