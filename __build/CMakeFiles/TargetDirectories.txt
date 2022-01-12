@@ -1,3 +1,0 @@
-/home/jae/WorkSpace/Personal/VK2/project_cmake/__build/CMakeFiles/HeyVulkan.dir
-/home/jae/WorkSpace/Personal/VK2/project_cmake/__build/CMakeFiles/edit_cache.dir
-/home/jae/WorkSpace/Personal/VK2/project_cmake/__build/CMakeFiles/rebuild_cache.dir

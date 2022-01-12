@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/HeyVulkan.dir/src/main.cpp.o CMakeFiles/HeyVulkan.dir/src/Application.cpp.o -o HeyVulkan  /usr/lib/libglfw.so -lxcb -lXrandr -lXinerama -lXi -lXxf86vm -lXcursor -lGL -ldl -lpthread /usr/lib/libassimp.so -lvulkan 
