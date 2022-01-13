@@ -56,6 +56,8 @@ App::App(int width, int height, const char* title){
     }
 
     if(! mCreateLogicalDevice()) return;
+
+    if(! mCreateSwapChain()) return;
 }
 
 void App::loop(){    
@@ -342,5 +344,5 @@ bool App::mCreateLogicalDevice(){
 }
 
 bool App::mCreateSwapChain(){
-    
+    return true;
 }

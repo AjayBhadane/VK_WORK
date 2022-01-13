@@ -57,6 +57,11 @@ inline bool checkValidationSupport(std::vector<const char*> validationLayers){
     return true;
 }
 
+SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,  VkSurfaceKHR surface){
+    SwapChainSupportDetails details;
+    return details;
+}
+
 inline std::vector<const char*> getRequiredVkExtensions(bool pEnableValidationLayers){
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -161,7 +166,7 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device){
         requiredExtensions.erase(extension.extensionName);
     }
 
-    return requiredExtensions.isEmpty();
+    return requiredExtensions.empty();
 }
 
 inline bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface = NULL){
