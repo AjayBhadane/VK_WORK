@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 #define NDEBUG 1
 
 #define VK_USE_PLATFORM_XCB_KHR
@@ -35,7 +36,15 @@ struct VulkanQueue{
     VkQueue graphicsQueue;
     VkQueue presentQueue;
     uint32_t queueFamilyIndex = 0;
-    uint32_t presentFamilyIndex = 0;
+    uint32_t presentFamilyIndex = 0;    
+};
+
+struct VulkanSwapChain{
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    std::vector<VkImageView> swapChainImageViews;
 };
 
 struct VulkanSurface{
@@ -59,6 +68,7 @@ class App{
         VulkanInstance mInstance;
         VulkanQueue mQueue;
         VulkanSurface mSurface;
+        VulkanSwapChain mSwapChain;
 
         #ifdef NDEBUG
             bool mEnableValidationLayers = false;
@@ -82,9 +92,11 @@ class App{
         bool mPickPhysicalDevice();
         bool mCreateLogicalDevice();
         bool mCreateSwapChain();
+        bool mCreateImageViews();
+        bool mCreateGraphicsPipeline();
 
         // vulkan cleanup
-        // TODO: Make cleanup functions here
+        void cleanup();
 
     public:        
         App(int, int, const char*);

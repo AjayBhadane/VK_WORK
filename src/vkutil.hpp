@@ -8,6 +8,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include <optional>
+#include <algorithm>
 
 struct SwapChainSupportDetails{
     VkSurfaceCapabilitiesKHR capabilities;
@@ -30,6 +31,48 @@ struct QueueFamilyIndices {
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
+
+VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats){
+    for(const auto& availableFormat : availableFormats){
+        if(availableFormat.format == VK_FORMAT_B8G8R8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR){
+            return availableFormat;
+        }
+    }
+
+    return availableFormats[0];
+}
+
+VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes){
+    for(const auto& availablePresentMode : availablePresentModes){
+        if(availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR){
+            return availablePresentMode;
+        }
+    }
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, GLFWwindow* window){
+    if(capabilities.currentExtent.width != UINT32_MAX){
+        return capabilities.currentExtent;
+    } else {
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+
+        VkExtent2D actualExtent{
+            static_cast<uint32_t>(width),
+            static_cast<uint32_t>(height)
+        };
+
+        actualExtent.width = std::clamp(actualExtent.width, 
+                                        capabilities.minImageExtent.width,
+                                        capabilities.maxImageExtent.width);
+        actualExtent.height = std::clamp(actualExtent.height, 
+                                         capabilities.minImageExtent.height,
+                                         capabilities.maxImageExtent.height);
+
+        return actualExtent;
+    }
+}
 
 inline bool checkValidationSupport(std::vector<const char*> validationLayers){
     uint32_t layerCount; // Available validation layers
@@ -59,6 +102,25 @@ inline bool checkValidationSupport(std::vector<const char*> validationLayers){
 
 SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,  VkSurfaceKHR surface){
     SwapChainSupportDetails details;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &details.capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, nullptr);
+
+    if(formatCount !=0){
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, details.formats.data());
+    }
+
+    uint32_t presentModes;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModes, nullptr);
+    
+
+    if(presentModes != 0){ 
+        details.presentMode.resize(presentModes);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModes, details.presentMode.data());
+    }
+
     return details;
 }
 
@@ -130,14 +192,12 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
         if(surface != NULL){
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-            
-
-            if(presentSupport) {
-                indices.presentFamily = i;                
+            if(presentSupport) {                
+                indices.presentFamily = i;
             }
         }
         
-        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
+        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){            
             indices.graphicsFamily = i;
         }
 
@@ -170,8 +230,16 @@ bool checkDeviceExtensionSupport(VkPhysicalDevice device){
 }
 
 inline bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface = NULL){
+    bool swapChainAdequate = false;
+    bool extensionsSupported = checkDeviceExtensionSupport(device);
+
+    if(extensionsSupported){
+        SwapChainSupportDetails swapchainSupport = querySwapChainSupport(device, surface);
+        swapChainAdequate = !swapchainSupport.formats.empty() && !swapchainSupport.presentMode.empty();
+    }
+
     QueueFamilyIndices indices = findQueueFamilies(device, surface);
-    return indices.isComplete() && checkDeviceExtensionSupport(device);
+    return indices.isComplete() && extensionsSupported && swapChainAdequate;
 
 }
 

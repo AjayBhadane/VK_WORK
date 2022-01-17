@@ -26,7 +26,7 @@ void MyApp::processMouse(){
 }
 
 int main(){
-    MyApp myapp(800, 600, "VK");
+    MyApp myapp(1024, 768, "VK");
     myapp.start();
     return EXIT_SUCCESS;
 }

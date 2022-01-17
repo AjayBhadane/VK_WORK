@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <vector>
 #include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_structs.hpp>
 #include <vulkan/vulkan_xcb.h>
 #include <wayland-client-core.h>
 
@@ -52,12 +53,24 @@ App::App(int width, int height, const char* title){
     }
 
     if (! mPickPhysicalDevice()){
+        std::cerr << "Could not find a suitable device" << std::endl;
         return;
     }
 
-    if(! mCreateLogicalDevice()) return;
+    if(! mCreateLogicalDevice()){
+        std::cerr << "Createing logical device failed" << std::endl;
+        return;
+    } 
 
-    if(! mCreateSwapChain()) return;
+    if(! mCreateSwapChain()) {
+        std::cerr << "SwapChain creation failed" << std::endl;
+        return;
+    }
+
+    if(! mCreateImageViews()){
+        std::cerr << "Setting up image views failed" << std::endl;
+        return;
+    }
 }
 
 void App::loop(){    
@@ -344,5 +357,102 @@ bool App::mCreateLogicalDevice(){
 }
 
 bool App::mCreateSwapChain(){
+    SwapChainSupportDetails swapChainDetails = querySwapChainSupport(mInstance.physicalDevice, mSurface.surface);
+
+    VkSurfaceFormatKHR surfaceFormat    =   chooseSwapSurfaceFormat(swapChainDetails.formats);
+    VkPresentModeKHR presentMode        =   chooseSwapPresentMode(swapChainDetails.presentMode);
+    VkExtent2D extent                   =   chooseSwapExtent(swapChainDetails.capabilities, window.handle);
+
+    uint32_t imageCount = swapChainDetails.capabilities.minImageCount + 1;
+
+    if(swapChainDetails.capabilities.maxImageCount > 0 && imageCount > swapChainDetails.capabilities.maxImageCount){
+        imageCount = swapChainDetails.capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR createInfo{};
+
+    createInfo.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface          = mSurface.surface;
+    createInfo.minImageCount    = imageCount;
+    createInfo.imageFormat      = surfaceFormat.format;
+    createInfo.imageColorSpace  = surfaceFormat.colorSpace;
+    createInfo.imageExtent      = extent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    QueueFamilyIndices indices = findQueueFamilies(mInstance.physicalDevice);    
+
+    uint32_t queueFamilyIndices[]     =   { mQueue.queueFamilyIndex, 
+                                            mQueue.presentFamilyIndex};    
+    
+    if(indices.graphicsFamily != indices.presentFamily){
+        createInfo.imageSharingMode         = VK_SHARING_MODE_CONCURRENT;
+        createInfo.queueFamilyIndexCount    = 2;
+        createInfo.pQueueFamilyIndices      = queueFamilyIndices;
+    } else {
+        createInfo.imageSharingMode         = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.queueFamilyIndexCount    = 0;
+        createInfo.pQueueFamilyIndices      = nullptr;
+    }
+
+    createInfo.preTransform     = swapChainDetails.capabilities.currentTransform;
+    createInfo.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode      = presentMode;
+    createInfo.clipped          = VK_TRUE;
+    createInfo.oldSwapchain     = VK_NULL_HANDLE;
+
+    if( vkCreateSwapchainKHR(mInstance.device, &createInfo, nullptr, &mSwapChain.swapChain)!=VK_SUCCESS ){
+        throw::std::runtime_error("Failed to create swapchain");
+    }
+
+    vkGetSwapchainImagesKHR(mInstance.device, mSwapChain.swapChain, &imageCount, nullptr);
+    mSwapChain.swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(mInstance.device, mSwapChain.swapChain, &imageCount, mSwapChain.swapChainImages.data());
+
+    mSwapChain.swapChainImageFormat = surfaceFormat.format;
+    mSwapChain.swapChainExtent      = extent;
+
     return true;
+}
+
+bool App::mCreateImageViews(){
+    mSwapChain.swapChainImageViews.resize(mSwapChain.swapChainImages.size());    
+
+    for(int i = 0; i < mSwapChain.swapChainImageViews.size(); i++){
+        VkImageViewCreateInfo createInfo{
+            .sType          = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image          = mSwapChain.swapChainImages[i],
+            .viewType       = VK_IMAGE_VIEW_TYPE_2D,
+            .format         = mSwapChain.swapChainImageFormat,
+            .components{
+                .r   = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .g   = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .b   = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .a   = VK_COMPONENT_SWIZZLE_IDENTITY
+            },
+            .subresourceRange {
+                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel   = 0,
+                .levelCount     = 1,
+                .baseArrayLayer = 0,
+                .layerCount     = 1
+            }
+        };
+
+        if(vkCreateImageView(mInstance.device, &createInfo, nullptr, &mSwapChain.swapChainImageViews[i]) != VK_SUCCESS){
+            throw std::runtime_error("failed to create image views !");
+        }
+    }
+
+    return true;
+}
+
+bool App::mCreateGraphicsPipeline(){
+    
+}
+
+void App::cleanup(){
+    for(auto imageView : mSwapChain.swapChainImageViews){
+        vkDestroyImageView(mInstance.device, imageView, nullptr);
+    }
 }
