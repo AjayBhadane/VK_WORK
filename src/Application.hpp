@@ -19,7 +19,14 @@
 #include <xcb/xcb.h>
 #include <X11/Xlib.h>
 
+#include <shaderc/shaderc.hpp>
+
 void framebuffer_size_callback(GLFWwindow*, int, int);
+
+struct VulkanShader{
+    VkShaderModule  vertexShaderModule;
+    VkShaderModule  fragmentShaderModule;
+};
 
 struct WindowInfo{
     GLFWwindow* handle;
@@ -27,24 +34,24 @@ struct WindowInfo{
 };
 
 struct VulkanInstance{
-    VkInstance instance = VK_NULL_HANDLE;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device = VK_NULL_HANDLE;    
+    VkInstance          instance        = VK_NULL_HANDLE;
+    VkPhysicalDevice    physicalDevice  = VK_NULL_HANDLE;
+    VkDevice            device          = VK_NULL_HANDLE;    
 };
 
 struct VulkanQueue{
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-    uint32_t queueFamilyIndex = 0;
-    uint32_t presentFamilyIndex = 0;    
+    VkQueue     graphicsQueue;
+    VkQueue     presentQueue;
+    uint32_t    queueFamilyIndex    = 0;
+    uint32_t    presentFamilyIndex  = 0;    
 };
 
 struct VulkanSwapChain{
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
-    VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
+    VkSwapchainKHR              swapChain;
+    std::vector<VkImage>        swapChainImages;
+    VkFormat                    swapChainImageFormat;
+    VkExtent2D                  swapChainExtent;
+    std::vector<VkImageView>    swapChainImageViews;
 };
 
 struct VulkanSurface{
@@ -65,10 +72,11 @@ class App{
         WindowInfo window;
 
         // Vulkan vars
-        VulkanInstance mInstance;
-        VulkanQueue mQueue;
-        VulkanSurface mSurface;
+        VulkanInstance  mInstance;
+        VulkanQueue     mQueue;
+        VulkanSurface   mSurface;
         VulkanSwapChain mSwapChain;
+        VulkanShader    mShader;
 
         #ifdef NDEBUG
             bool mEnableValidationLayers = false;

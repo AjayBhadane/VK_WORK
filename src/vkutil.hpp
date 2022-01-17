@@ -5,10 +5,39 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <stdexcept>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 #include <optional>
 #include <algorithm>
+
+VkShaderModule createShaderModule(VkDevice device, const std::vector<char> & code){
+    VkShaderModuleCreateInfo createInfo{};
+    VkShaderModule shaderModule;
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = code.size();
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+    if(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS){
+        throw std::runtime_error("failed to create shader module");
+    }
+
+    return shaderModule;
+}
+
+inline std::vector<char> readFile(const char* path){
+    FILE *f = fopen(path, "rb");
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    
+    std::vector<char> buffer (fsize);
+    fread(buffer.data(), 1, fsize, f);
+    fclose(f);    
+    
+    return buffer;
+}
+
 
 struct SwapChainSupportDetails{
     VkSurfaceCapabilitiesKHR capabilities;

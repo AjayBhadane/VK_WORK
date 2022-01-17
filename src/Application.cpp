@@ -71,6 +71,11 @@ App::App(int width, int height, const char* title){
         std::cerr << "Setting up image views failed" << std::endl;
         return;
     }
+
+    if(! mCreateGraphicsPipeline()){
+        std::cerr << "Failed to create a graphics pipeline" << std::endl;
+        return;
+    }
 }
 
 void App::loop(){    
@@ -79,7 +84,10 @@ void App::loop(){
         glfwPollEvents();
         glfwSwapBuffers(App::window.handle);
         calculateDeltaTime();
-    }    
+    }
+
+    // TODO : Implement a proper cleanup function
+    // cleanup();
 }
 
 void App::start(){	
@@ -448,11 +456,37 @@ bool App::mCreateImageViews(){
 }
 
 bool App::mCreateGraphicsPipeline(){
-    
+    auto vertexShaderCode           = readFile("./shader/spv/test.vert.spv");
+    auto fragShaderCode             = readFile("./shader/spv/test.frag.spv");
+    mShader.vertexShaderModule      = createShaderModule(mInstance.device, vertexShaderCode);
+    mShader.fragmentShaderModule    = createShaderModule(mInstance.device, fragShaderCode);
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo;
+
+    vertShaderStageInfo.sType       = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage       = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module      = mShader.vertexShaderModule;
+    vertShaderStageInfo.pName       = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo;
+
+    fragShaderStageInfo.sType       = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module      = mShader.fragmentShaderModule;
+    fragShaderStageInfo.pName       = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+
+    return true;
 }
 
 void App::cleanup(){
     for(auto imageView : mSwapChain.swapChainImageViews){
         vkDestroyImageView(mInstance.device, imageView, nullptr);
     }
+
+    vkDestroyShaderModule(mInstance.device, mShader.vertexShaderModule,     nullptr);
+    vkDestroyShaderModule(mInstance.device, mShader.fragmentShaderModule,   nullptr);
 }

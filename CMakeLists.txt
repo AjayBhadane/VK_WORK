@@ -19,7 +19,7 @@ message(STATUS "GLFW included at ${GLFW3_INCLUDE_DIR}")
 find_package(ASSIMP REQUIRED)
 message(STATUS "ASSIMP included at ${ASSIMP_INCLUDE_DIR}")
 
-set(LIBS ${GLFW3_LIBRARY} xcb Xrandr Xinerama Xi Xxf86vm Xcursor GL dl pthread ${ASSIMP_LIBRARY} vulkan)
+set(LIBS ${GLFW3_LIBRARY} shaderc xcb Xrandr Xinerama Xi Xxf86vm Xcursor GL dl pthread ${ASSIMP_LIBRARY} vulkan)
 
 add_executable(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/src/main.cpp"
                                 "${CMAKE_SOURCE_DIR}/src/Application.cpp")
