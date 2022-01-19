@@ -11,6 +11,8 @@
 #include <optional>
 #include <algorithm>
 
+#include "../configuration/root_directory.h"
+
 VkShaderModule createShaderModule(VkDevice device, const std::vector<char> & code){
     VkShaderModuleCreateInfo createInfo{};
     VkShaderModule shaderModule;
@@ -26,7 +28,11 @@ VkShaderModule createShaderModule(VkDevice device, const std::vector<char> & cod
 }
 
 inline std::vector<char> readFile(const char* path){
-    FILE *f = fopen(path, "rb");
+    std::string _path = logl_root;
+    _path += path;
+
+    FILE *f = fopen(_path.c_str(), "rb");
+
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -46,8 +52,7 @@ struct SwapChainSupportDetails{
 };
 
 struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
+    std::optional<uint32_t> graphicsFamily, presentFamily;
 
     bool isComplete() {
         return graphicsFamily.has_value() && presentFamily.has_value();
@@ -60,6 +65,13 @@ struct QueueFamilyIndices {
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
+
+void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+        func(instance, debugMessenger, pAllocator);
+    }
+}
 
 VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats){
     for(const auto& availableFormat : availableFormats){
@@ -218,15 +230,15 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
 
     for(const auto& queueFamily : queueFamilies){
 
-        if(surface != NULL){
+        if(surface != nullptr){
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-            if(presentSupport) {                
+            if(presentSupport) {
                 indices.presentFamily = i;
             }
         }
         
-        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){            
+        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT){
             indices.graphicsFamily = i;
         }
 
@@ -270,31 +282,6 @@ inline bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface = NUL
     QueueFamilyIndices indices = findQueueFamilies(device, surface);
     return indices.isComplete() && extensionsSupported && swapChainAdequate;
 
-}
-
-inline uint32_t getQueueFamily(VkPhysicalDevice physicalDevice){
-    uint32_t queueFamilyIndex;
-    uint32_t queueFamilyCount;
-    
-    vkGetPhysicalDeviceQueueFamilyProperties
-        (physicalDevice, &queueFamilyCount, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queueProperties(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties
-        (physicalDevice, &queueFamilyCount, queueProperties.data());
-
-    uint32_t i = 0;
-
-    for(auto queueProperty : queueProperties){
-        if(queueProperty.queueFlags == VK_QUEUE_GRAPHICS_BIT){
-            queueFamilyIndex = queueProperty.queueFlags;
-            break;
-        }
-
-        i++;
-    }
-
-    return i;
 }
 
 #endif /** __VK_UTILS_HPP */

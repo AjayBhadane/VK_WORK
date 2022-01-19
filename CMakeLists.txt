@@ -12,6 +12,8 @@ set(${COMPILE_FLAGS} "${COMPILE_FLAGS} -g")
 
 set(${CMAKE_CXX_STANDARD} C++17)
 
+configure_file(${CMAKE_SOURCE_DIR}/configuration/root_directory.h.in ${CMAKE_SOURCE_DIR}/configuration/root_directory.h)
+
 find_package(GLM REQUIRED)
 message(STATUS "GLM included at ${GLM_INCLUDE_DIR}")
 find_package(GLFW3 REQUIRED)

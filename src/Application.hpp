@@ -2,8 +2,7 @@
 
 #include <cstdint>
 #include <vector>
-#define NDEBUG 1
-
+ #define NDEBUG
 #define VK_USE_PLATFORM_XCB_KHR
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -42,8 +41,8 @@ struct VulkanInstance{
 struct VulkanQueue{
     VkQueue     graphicsQueue;
     VkQueue     presentQueue;
-    uint32_t    queueFamilyIndex    = 0;
-    uint32_t    presentFamilyIndex  = 0;    
+    uint32_t    graphicsFamilyIndex;
+    uint32_t    presentFamilyIndex;
 };
 
 struct VulkanSwapChain{
@@ -52,10 +51,19 @@ struct VulkanSwapChain{
     VkFormat                    swapChainImageFormat;
     VkExtent2D                  swapChainExtent;
     std::vector<VkImageView>    swapChainImageViews;
+    std::vector<VkFramebuffer>  swapChainFramebuffers;
 };
 
 struct VulkanSurface{
     VkSurfaceKHR surface;
+};
+
+struct VulkanRenderPass{
+    VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffer;
 };
 
 static WindowInfo initWindow(int, int, const char*);
@@ -77,6 +85,7 @@ class App{
         VulkanSurface   mSurface;
         VulkanSwapChain mSwapChain;
         VulkanShader    mShader;
+        VulkanRenderPass mRenderPass;
 
         #ifdef NDEBUG
             bool mEnableValidationLayers = false;
@@ -101,12 +110,16 @@ class App{
         bool mCreateLogicalDevice();
         bool mCreateSwapChain();
         bool mCreateImageViews();
+        bool mCreateRenderPass();
         bool mCreateGraphicsPipeline();
+        bool mCreateFrameBuffers();
+        bool mCreateCommandpool();
+        void mCreateCommandBuffers();
 
         // vulkan cleanup
         void cleanup();
 
-    public:        
+    public:
         App(int, int, const char*);
         
         virtual void initDraw() = 0;
