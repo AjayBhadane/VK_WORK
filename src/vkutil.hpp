@@ -155,7 +155,6 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,  
 
     uint32_t presentModes;
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModes, nullptr);
-    
 
     if(presentModes != 0){ 
         details.presentMode.resize(presentModes);

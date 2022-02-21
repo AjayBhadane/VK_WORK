@@ -57,16 +57,18 @@ App::App(int width, int height, const char* title){
     mCreateGraphicsPipeline();
     mCreateFrameBuffers();
     mCreateCommandpool();
+    mCreateCommandBuffers();
+    mCreateSyncObjects();
 }
 
 void App::loop(){    
-    while(!glfwWindowShouldClose(this->window.handle)){                       
-        this->draw();
+    while(!glfwWindowShouldClose(this->window.handle)){
         glfwPollEvents();
+        this->draw();
         glfwSwapBuffers(App::window.handle);
         calculateDeltaTime();
     }
-
+    vkDeviceWaitIdle(mInstance.device);
     this->cleanup();
 }
 
@@ -163,12 +165,12 @@ bool App::mVkCreateInstance(){
 
     VkInstanceCreateInfo createInfo{
     	.sType                      = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-    	        .pNext                      = nullptr,
-    	        .pApplicationInfo           = &appInfo,
-    	        .enabledLayerCount          = 0 ,
-    	        .ppEnabledLayerNames        = nullptr,
-    	        .enabledExtensionCount      = static_cast<uint32_t>(extensions.size()),
-    	        .ppEnabledExtensionNames    = extensions.data()
+        .pNext                      = nullptr,
+        .pApplicationInfo           = &appInfo,
+        .enabledLayerCount          = 0 ,
+        .ppEnabledLayerNames        = nullptr,
+        .enabledExtensionCount      = static_cast<uint32_t>(extensions.size()),
+        .ppEnabledExtensionNames    = extensions.data()
     };
 
     if(mEnableValidationLayers){
@@ -265,7 +267,7 @@ bool App::mPickPhysicalDevice(){
             mInstance.physicalDevice = device;
             break;
         }
-    }    
+    }
 
     if(mInstance.physicalDevice == VK_NULL_HANDLE){
         throw std::runtime_error("failed to find suitable GPU!");
@@ -464,6 +466,16 @@ bool App::mCreateRenderPass(){
     renderPassCreateInfo.subpassCount       = 1;
     renderPassCreateInfo.pSubpasses         = &subpass;
 
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass       = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass       = 0;
+    dependency.dstStageMask     = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    renderPassCreateInfo.dependencyCount    = 1;
+    renderPassCreateInfo.pDependencies      = &dependency;
+    renderPassCreateInfo.pDependencies      = &dependency;
+
     if(vkCreateRenderPass(mInstance.device, &renderPassCreateInfo, nullptr, &mRenderPass.renderPass) != VK_SUCCESS){
         throw std::runtime_error("failed to create render pass!");
     }
@@ -626,11 +638,79 @@ bool App::mCreateCommandpool(){
 }
 
 void App::mCreateCommandBuffers(){
-    mRenderPass.commandBuffer.resize(mSwapChain.swapChainFramebuffers.size());
+    mRenderPass.commandBuffers.resize(mSwapChain.swapChainFramebuffers.size());
 
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.commandPool = mRenderPass.commandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = (uint32_t) mRenderPass.commandBuffers.size();
+
+    if (vkAllocateCommandBuffers(mInstance.device, &allocInfo, mRenderPass.commandBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("failed to allocate command buffers!");
+    }
+
+    for (size_t i = 0; i < mRenderPass.commandBuffers.size(); i++) {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if (vkBeginCommandBuffer(mRenderPass.commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("failed to begin recording command buffer!");
+        }
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = mRenderPass.renderPass;
+        renderPassInfo.framebuffer = mSwapChain.swapChainFramebuffers[i];
+        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.extent = mSwapChain.swapChainExtent;
+
+        VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+        renderPassInfo.clearValueCount = 1;
+        renderPassInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(mRenderPass.commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindPipeline(mRenderPass.commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mRenderPass.graphicsPipeline);
+
+        vkCmdDraw(mRenderPass.commandBuffers[i], 3, 1, 0, 0);
+
+        vkCmdEndRenderPass(mRenderPass.commandBuffers[i]);
+
+        if (vkEndCommandBuffer(mRenderPass.commandBuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to record command buffer!");
+        }
+    }
+}
+
+void App::mCreateSyncObjects(){
+    mRenderPass.imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    mRenderPass.renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    mRenderPass.inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    mRenderPass.imagesInFlight.resize(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType               = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceCreateInfo.flags               = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
+        if(vkCreateSemaphore(mInstance.device, &semaphoreInfo, nullptr, &mRenderPass.imageAvailableSemaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(mInstance.device, &semaphoreInfo, nullptr, &mRenderPass.renderFinishedSemaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(mInstance.device, &fenceCreateInfo, nullptr, &mRenderPass.inFlightFences[i])){
+            throw std::runtime_error("failed to create semaphore");
+        }
+    }
 }
 
 void App::cleanup(){
+    for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
+        vkDestroySemaphore(mInstance.device, mRenderPass.renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(mInstance.device, mRenderPass.imageAvailableSemaphores[i], nullptr);
+        vkDestroyFence(mInstance.device, mRenderPass.inFlightFences[i], nullptr);
+    }
 
     vkDestroyCommandPool(mInstance.device, mRenderPass.commandPool, nullptr);
 

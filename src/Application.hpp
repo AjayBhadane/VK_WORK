@@ -20,6 +20,8 @@
 
 #include <shaderc/shaderc.hpp>
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 void framebuffer_size_callback(GLFWwindow*, int, int);
 
 struct VulkanShader{
@@ -63,7 +65,12 @@ struct VulkanRenderPass{
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
     VkCommandPool commandPool;
-    std::vector<VkCommandBuffer> commandBuffer;
+    std::vector<VkCommandBuffer> commandBuffers;
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
+    std::vector<VkFence> imagesInFlight;
+    size_t currentFrame = 0;
 };
 
 static WindowInfo initWindow(int, int, const char*);
@@ -79,13 +86,6 @@ class App{
     private:
         WindowInfo window;
 
-        // Vulkan vars
-        VulkanInstance  mInstance;
-        VulkanQueue     mQueue;
-        VulkanSurface   mSurface;
-        VulkanSwapChain mSwapChain;
-        VulkanShader    mShader;
-        VulkanRenderPass mRenderPass;
 
         #ifdef NDEBUG
             bool mEnableValidationLayers = false;
@@ -115,13 +115,22 @@ class App{
         bool mCreateFrameBuffers();
         bool mCreateCommandpool();
         void mCreateCommandBuffers();
+        void mCreateSyncObjects();
 
         // vulkan cleanup
         void cleanup();
 
     public:
         App(int, int, const char*);
-        
+
+        // Vulkan vars
+        VulkanInstance  mInstance;
+        VulkanQueue     mQueue;
+        VulkanSurface   mSurface;
+        VulkanSwapChain mSwapChain;
+        VulkanShader    mShader;
+        VulkanRenderPass mRenderPass;
+
         virtual void initDraw() = 0;
         virtual void draw() = 0;
 
